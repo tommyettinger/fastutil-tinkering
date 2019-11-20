@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.github.tommyettinger</groupId>
+    <artifactId>fastutil-tinkering</artifactId>
+    <version>7.2.1.1</version>
+    <packaging>jar</packaging>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.version>3.8.0</maven.compiler.version>
+        <maven.javadoc.version>3.1.1</maven.javadoc.version>
+        <maven.resources.version>3.1.0</maven.resources.version>
+        <maven.source.version>3.0.1</maven.source.version>
+        <maven.shade.version>3.2.1</maven.shade.version>
+        <maven.gpg.version>1.7</maven.gpg.version>
+        <junit.version>4.12</junit.version>
+        <jdk.version>1.7</jdk.version>
+    </properties>
+    <description>fastutil-tinkering extends the Java Collections Framework by providing type-specific maps, sets, lists and priority queues with a small memory footprint and fast access and insertion; provides also big (64-bit) arrays, sets and lists, and fast, practical I/O classes for binary and text files.</description>
+    <url>http://fasutil.di.unimi.it/</url>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <connection>scm:git://github.com/tommyettinger/fastutil-tinkering.git</connection>
+        <url>https://github.com/tommyettinger/fastutil-tinkering</url>
+    </scm>
+    <developers>
+        <developer>
+            <id>vigna</id>
+            <name>Sebastiano Vigna</name>
+            <email>vigna@di.unimi.it</email>
+        </developer>
+        <developer>
+            <name>Tommy Ettinger</name>
+            <email>example@example.com</email>
+        </developer>
+    </developers>
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+        <testOutputDirectory>target/test-classes</testOutputDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.version}</version>
+                <configuration>
+                    <source>${jdk.version}</source>
+                    <target>${jdk.version}</target>
+                    <excludes>
+                        <exclude>**/*.c</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven.source.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <includePom>true</includePom>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.version}</version>
+                <inherited>true</inherited>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <notimestamp>true</notimestamp>
+                    <outputDirectory>docs/${project.name}/apidocs/</outputDirectory>
+                    <debug>false</debug>
+                    <minmemory>256m</minmemory>
+                    <maxmemory>1024m</maxmemory>
+                    <quiet>true</quiet>
+                    <doctitle>${project.name} ${project.version}</doctitle>
+                    <windowtitle>${project.name} ${project.version}</windowtitle>
+                    <splitindex>true</splitindex>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <javadocVersion>${jdk.version}</javadocVersion>
+                    <links>
+                        <!--<link>http://docs.oracle.com/javase/8/docs/api/</link>-->
+                        <link>https://docs.oracle.com/en/java/javase/13/docs/api/</link>
+                    </links>
+                    <linksource>true</linksource>
+                    <detectLinks>true</detectLinks>
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                    <detectOfflineLinks>true</detectOfflineLinks>
+                    <doclint>none</doclint>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

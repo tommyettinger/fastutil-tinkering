@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>/*<a name="line.1"></a>
+<span class="sourceLineNo">002</span>        * Copyright (C) 2003-2017 Sebastiano Vigna<a name="line.2"></a>
+<span class="sourceLineNo">003</span>        *<a name="line.3"></a>
+<span class="sourceLineNo">004</span>        * Licensed under the Apache License, Version 2.0 (the "License");<a name="line.4"></a>
+<span class="sourceLineNo">005</span>        * you may not use this file except in compliance with the License.<a name="line.5"></a>
+<span class="sourceLineNo">006</span>        * You may obtain a copy of the License at<a name="line.6"></a>
+<span class="sourceLineNo">007</span>        *<a name="line.7"></a>
+<span class="sourceLineNo">008</span>        *     http://www.apache.org/licenses/LICENSE-2.0<a name="line.8"></a>
+<span class="sourceLineNo">009</span>        *<a name="line.9"></a>
+<span class="sourceLineNo">010</span>        * Unless required by applicable law or agreed to in writing, software<a name="line.10"></a>
+<span class="sourceLineNo">011</span>        * distributed under the License is distributed on an "AS IS" BASIS,<a name="line.11"></a>
+<span class="sourceLineNo">012</span>        * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<a name="line.12"></a>
+<span class="sourceLineNo">013</span>        * See the License for the specific language governing permissions and<a name="line.13"></a>
+<span class="sourceLineNo">014</span>        * limitations under the License.<a name="line.14"></a>
+<span class="sourceLineNo">015</span>        */<a name="line.15"></a>
+<span class="sourceLineNo">016</span>package it.unimi.dsi.fastutil.longs;<a name="line.16"></a>
+<span class="sourceLineNo">017</span>/** A class providing static methods and objects that do useful things with type-specific priority queues.<a name="line.17"></a>
+<span class="sourceLineNo">018</span>        *<a name="line.18"></a>
+<span class="sourceLineNo">019</span>        * @see it.unimi.dsi.fastutil.PriorityQueue<a name="line.19"></a>
+<span class="sourceLineNo">020</span>        */<a name="line.20"></a>
+<span class="sourceLineNo">021</span>public class LongPriorityQueues {<a name="line.21"></a>
+<span class="sourceLineNo">022</span>        private LongPriorityQueues() {}<a name="line.22"></a>
+<span class="sourceLineNo">023</span>        /** A synchronized wrapper class for priority queues. */<a name="line.23"></a>
+<span class="sourceLineNo">024</span>        public static class SynchronizedPriorityQueue implements LongPriorityQueue {<a name="line.24"></a>
+<span class="sourceLineNo">025</span>         final protected LongPriorityQueue q;<a name="line.25"></a>
+<span class="sourceLineNo">026</span>         final protected Object sync;<a name="line.26"></a>
+<span class="sourceLineNo">027</span>         protected SynchronizedPriorityQueue(final LongPriorityQueue q, final Object sync) {<a name="line.27"></a>
+<span class="sourceLineNo">028</span>          this.q = q;<a name="line.28"></a>
+<span class="sourceLineNo">029</span>          this.sync = sync;<a name="line.29"></a>
+<span class="sourceLineNo">030</span>         }<a name="line.30"></a>
+<span class="sourceLineNo">031</span>         protected SynchronizedPriorityQueue(final LongPriorityQueue q) {<a name="line.31"></a>
+<span class="sourceLineNo">032</span>          this.q = q;<a name="line.32"></a>
+<span class="sourceLineNo">033</span>          this.sync = this;<a name="line.33"></a>
+<span class="sourceLineNo">034</span>         }<a name="line.34"></a>
+<span class="sourceLineNo">035</span>         @Override<a name="line.35"></a>
+<span class="sourceLineNo">036</span>         public void enqueue(long x) { synchronized(sync) { q.enqueue(x); } }<a name="line.36"></a>
+<span class="sourceLineNo">037</span>         @Override<a name="line.37"></a>
+<span class="sourceLineNo">038</span>         public long dequeueLong() { synchronized(sync) { return q.dequeueLong(); } }<a name="line.38"></a>
+<span class="sourceLineNo">039</span>         @Override<a name="line.39"></a>
+<span class="sourceLineNo">040</span>         public long firstLong() { synchronized(sync) { return q.firstLong(); } }<a name="line.40"></a>
+<span class="sourceLineNo">041</span>         @Override<a name="line.41"></a>
+<span class="sourceLineNo">042</span>         public long lastLong() { synchronized(sync) { return q.lastLong(); } }<a name="line.42"></a>
+<span class="sourceLineNo">043</span>         @Override<a name="line.43"></a>
+<span class="sourceLineNo">044</span>         public boolean isEmpty() { synchronized(sync) { return q.isEmpty(); } }<a name="line.44"></a>
+<span class="sourceLineNo">045</span>         @Override<a name="line.45"></a>
+<span class="sourceLineNo">046</span>         public int size() { synchronized(sync) { return q.size(); } }<a name="line.46"></a>
+<span class="sourceLineNo">047</span>         @Override<a name="line.47"></a>
+<span class="sourceLineNo">048</span>         public void clear() { synchronized(sync) { q.clear(); } }<a name="line.48"></a>
+<span class="sourceLineNo">049</span>         @Override<a name="line.49"></a>
+<span class="sourceLineNo">050</span>         public void changed() { synchronized(sync) { q.changed(); } }<a name="line.50"></a>
+<span class="sourceLineNo">051</span>         @Override<a name="line.51"></a>
+<span class="sourceLineNo">052</span>         public LongComparator comparator() { synchronized(sync) { return q.comparator(); } }<a name="line.52"></a>
+<span class="sourceLineNo">053</span>         @Deprecated<a name="line.53"></a>
+<span class="sourceLineNo">054</span>         @Override<a name="line.54"></a>
+<span class="sourceLineNo">055</span>         public void enqueue(Long x) { synchronized(sync) { q.enqueue(x); } }<a name="line.55"></a>
+<span class="sourceLineNo">056</span>         @Deprecated<a name="line.56"></a>
+<span class="sourceLineNo">057</span>         @Override<a name="line.57"></a>
+<span class="sourceLineNo">058</span>         public Long dequeue() { synchronized(sync) { return q.dequeue(); } }<a name="line.58"></a>
+<span class="sourceLineNo">059</span>         @Deprecated<a name="line.59"></a>
+<span class="sourceLineNo">060</span>         @Override<a name="line.60"></a>
+<span class="sourceLineNo">061</span>         public Long first() { synchronized(sync) { return q.first(); } }<a name="line.61"></a>
+<span class="sourceLineNo">062</span>         @Deprecated<a name="line.62"></a>
+<span class="sourceLineNo">063</span>         @Override<a name="line.63"></a>
+<span class="sourceLineNo">064</span>         public Long last() { synchronized(sync) { return q.last(); } }<a name="line.64"></a>
+<span class="sourceLineNo">065</span>         @Override<a name="line.65"></a>
+<span class="sourceLineNo">066</span>         public int hashCode() { synchronized(sync) { return q.hashCode(); } }<a name="line.66"></a>
+<span class="sourceLineNo">067</span>         @Override<a name="line.67"></a>
+<span class="sourceLineNo">068</span>         public boolean equals(final Object o) { if (o == this) return true; synchronized(sync) { return q.equals(o); } }<a name="line.68"></a>
+<span class="sourceLineNo">069</span>         private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {<a name="line.69"></a>
+<span class="sourceLineNo">070</span>          synchronized(sync) { s.defaultWriteObject(); }<a name="line.70"></a>
+<span class="sourceLineNo">071</span>         }<a name="line.71"></a>
+<span class="sourceLineNo">072</span>        }<a name="line.72"></a>
+<span class="sourceLineNo">073</span>        /** Returns a synchronized type-specific priority queue backed by the specified type-specific priority queue.<a name="line.73"></a>
+<span class="sourceLineNo">074</span>         *<a name="line.74"></a>
+<span class="sourceLineNo">075</span>         * @param q the priority queue to be wrapped in a synchronized priority queue.<a name="line.75"></a>
+<span class="sourceLineNo">076</span>         * @return a synchronized view of the specified priority queue.<a name="line.76"></a>
+<span class="sourceLineNo">077</span>         */<a name="line.77"></a>
+<span class="sourceLineNo">078</span>        public static LongPriorityQueue synchronize(final LongPriorityQueue q) { return new SynchronizedPriorityQueue(q); }<a name="line.78"></a>
+<span class="sourceLineNo">079</span>        /** Returns a synchronized type-specific priority queue backed by the specified type-specific priority queue, using an assigned object to synchronize.<a name="line.79"></a>
+<span class="sourceLineNo">080</span>         *<a name="line.80"></a>
+<span class="sourceLineNo">081</span>         * @param q the priority queue to be wrapped in a synchronized priority queue.<a name="line.81"></a>
+<span class="sourceLineNo">082</span>         * @param sync an object that will be used to synchronize the access to the priority queue.<a name="line.82"></a>
+<span class="sourceLineNo">083</span>         * @return a synchronized view of the specified priority queue.<a name="line.83"></a>
+<span class="sourceLineNo">084</span>         */<a name="line.84"></a>
+<span class="sourceLineNo">085</span>        public static LongPriorityQueue synchronize(final LongPriorityQueue q, final Object sync) { return new SynchronizedPriorityQueue(q, sync); }<a name="line.85"></a>
+<span class="sourceLineNo">086</span>}<a name="line.86"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>/*<a name="line.1"></a>
+<span class="sourceLineNo">002</span>        * Copyright (C) 2002-2017 Sebastiano Vigna<a name="line.2"></a>
+<span class="sourceLineNo">003</span>        *<a name="line.3"></a>
+<span class="sourceLineNo">004</span>        * Licensed under the Apache License, Version 2.0 (the "License");<a name="line.4"></a>
+<span class="sourceLineNo">005</span>        * you may not use this file except in compliance with the License.<a name="line.5"></a>
+<span class="sourceLineNo">006</span>        * You may obtain a copy of the License at<a name="line.6"></a>
+<span class="sourceLineNo">007</span>        *<a name="line.7"></a>
+<span class="sourceLineNo">008</span>        *     http://www.apache.org/licenses/LICENSE-2.0<a name="line.8"></a>
+<span class="sourceLineNo">009</span>        *<a name="line.9"></a>
+<span class="sourceLineNo">010</span>        * Unless required by applicable law or agreed to in writing, software<a name="line.10"></a>
+<span class="sourceLineNo">011</span>        * distributed under the License is distributed on an "AS IS" BASIS,<a name="line.11"></a>
+<span class="sourceLineNo">012</span>        * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<a name="line.12"></a>
+<span class="sourceLineNo">013</span>        * See the License for the specific language governing permissions and<a name="line.13"></a>
+<span class="sourceLineNo">014</span>        * limitations under the License.<a name="line.14"></a>
+<span class="sourceLineNo">015</span>        */<a name="line.15"></a>
+<span class="sourceLineNo">016</span>package it.unimi.dsi.fastutil.floats;<a name="line.16"></a>
+<span class="sourceLineNo">017</span>import java.util.Collection;<a name="line.17"></a>
+<span class="sourceLineNo">018</span>import java.util.Iterator;<a name="line.18"></a>
+<span class="sourceLineNo">019</span>import java.util.RandomAccess;<a name="line.19"></a>
+<span class="sourceLineNo">020</span>import java.util.NoSuchElementException;<a name="line.20"></a>
+<span class="sourceLineNo">021</span>import it.unimi.dsi.fastutil.BigArrays;<a name="line.21"></a>
+<span class="sourceLineNo">022</span>/** A type-specific big list based on a big array; provides some additional methods that use polymorphism to avoid (un)boxing.<a name="line.22"></a>
+<span class="sourceLineNo">023</span>        *<a name="line.23"></a>
+<span class="sourceLineNo">024</span>        * &lt;P&gt;This class implements a lightweight, fast, open, optimized,<a name="line.24"></a>
+<span class="sourceLineNo">025</span>        * reuse-oriented version of big-array-based big lists. Instances of this class<a name="line.25"></a>
+<span class="sourceLineNo">026</span>        * represent a big list with a big array that is enlarged as needed when new entries<a name="line.26"></a>
+<span class="sourceLineNo">027</span>        * are created (by doubling the current length), but is<a name="line.27"></a>
+<span class="sourceLineNo">028</span>        * &lt;em&gt;never&lt;/em&gt; made smaller (even on a {@link #clear()}). A family of<a name="line.28"></a>
+<span class="sourceLineNo">029</span>        * {@linkplain #trim() trimming methods} lets you control the size of the<a name="line.29"></a>
+<span class="sourceLineNo">030</span>        * backing big array; this is particularly useful if you reuse instances of this class.<a name="line.30"></a>
+<span class="sourceLineNo">031</span>        * Range checks are equivalent to those of {@link java.util}'s classes, but<a name="line.31"></a>
+<span class="sourceLineNo">032</span>        * they are delayed as much as possible. The backing big array is exposed by the<a name="line.32"></a>
+<span class="sourceLineNo">033</span>        * {@link #elements()} method.<a name="line.33"></a>
+<span class="sourceLineNo">034</span>        *<a name="line.34"></a>
+<span class="sourceLineNo">035</span>        * &lt;p&gt;This class implements the bulk methods &lt;code&gt;removeElements()&lt;/code&gt;,<a name="line.35"></a>
+<span class="sourceLineNo">036</span>        * &lt;code&gt;addElements()&lt;/code&gt; and &lt;code&gt;getElements()&lt;/code&gt; using<a name="line.36"></a>
+<span class="sourceLineNo">037</span>        * high-performance system calls (e.g., {@link<a name="line.37"></a>
+<span class="sourceLineNo">038</span>        * System#arraycopy(Object,int,Object,int,int) System.arraycopy()} instead of<a name="line.38"></a>
+<span class="sourceLineNo">039</span>        * expensive loops.<a name="line.39"></a>
+<span class="sourceLineNo">040</span>        *<a name="line.40"></a>
+<span class="sourceLineNo">041</span>        * @see java.util.ArrayList<a name="line.41"></a>
+<span class="sourceLineNo">042</span>        */<a name="line.42"></a>
+<span class="sourceLineNo">043</span>public class FloatBigArrayBigList extends AbstractFloatBigList implements RandomAccess, Cloneable, java.io.Serializable {<a name="line.43"></a>
+<span class="sourceLineNo">044</span>        private static final long serialVersionUID = -7046029254386353130L;<a name="line.44"></a>
+<span class="sourceLineNo">045</span>        /** The initial default capacity of a big-array big list. */<a name="line.45"></a>
+<span class="sourceLineNo">046</span>        public final static int DEFAULT_INITIAL_CAPACITY = 16;<a name="line.46"></a>
+<span class="sourceLineNo">047</span>        /** The backing big array. */<a name="line.47"></a>
+<span class="sourceLineNo">048</span>        protected transient float a[][];<a name="line.48"></a>
+<span class="sourceLineNo">049</span>        /** The current actual size of the big list (never greater than the backing-array length). */<a name="line.49"></a>
+<span class="sourceLineNo">050</span>        protected long size;<a name="line.50"></a>
+<span class="sourceLineNo">051</span>        private static final boolean ASSERTS = false;<a name="line.51"></a>
+<span class="sourceLineNo">052</span>        /** Creates a new big-array big list using a given array.<a name="line.52"></a>
+<span class="sourceLineNo">053</span>         *<a name="line.53"></a>
+<span class="sourceLineNo">054</span>         * &lt;P&gt;This constructor is only meant to be used by the wrapping methods.<a name="line.54"></a>
+<span class="sourceLineNo">055</span>         *<a name="line.55"></a>
+<span class="sourceLineNo">056</span>         * @param a the big array that will be used to back this big-array big list.<a name="line.56"></a>
+<span class="sourceLineNo">057</span>         */<a name="line.57"></a>
+<span class="sourceLineNo">058</span>        protected FloatBigArrayBigList(final float a[][], boolean dummy) {<a name="line.58"></a>
+<span class="sourceLineNo">059</span>         this.a = a;<a name="line.59"></a>
+<span class="sourceLineNo">060</span>        }<a name="line.60"></a>
+<span class="sourceLineNo">061</span>        /** Creates a new big-array big list with given capacity.<a name="line.61"></a>
+<span class="sourceLineNo">062</span>         *<a name="line.62"></a>
+<span class="sourceLineNo">063</span>         * @param capacity the initial capacity of the array list (may be 0).<a name="line.63"></a>
+<span class="sourceLineNo">064</span>         */<a name="line.64"></a>
+<span class="sourceLineNo">065</span><a name="line.65"></a>
+<span class="sourceLineNo">066</span>        public FloatBigArrayBigList(final long capacity) {<a name="line.66"></a>
+<span class="sourceLineNo">067</span>         if (capacity &lt; 0) throw new IllegalArgumentException("Initial capacity (" + capacity + ") is negative");<a name="line.67"></a>
+<span class="sourceLineNo">068</span>         a = FloatBigArrays.newBigArray(capacity);<a name="line.68"></a>
+<span class="sourceLineNo">069</span>        }<a name="line.69"></a>
+<span class="sourceLineNo">070</span>        /** Creates a new big-array big list with {@link #DEFAULT_INITIAL_CAPACITY} capacity.<a name="line.70"></a>
+<span class="sourceLineNo">071</span>         */<a name="line.71"></a>
+<span class="sourceLineNo">072</span>        public FloatBigArrayBigList() {<a name="line.72"></a>
+<span class="sourceLineNo">073</span>         this(DEFAULT_INITIAL_CAPACITY);<a name="line.73"></a>
+<span class="sourceLineNo">074</span>        }<a name="line.74"></a>
+<span class="sourceLineNo">075</span>        /** Creates a new big-array big list and fills it with a given type-specific collection.<a name="line.75"></a>
+<span class="sourceLineNo">076</span>         *<a name="line.76"></a>
+<span class="sourceLineNo">077</span>         * @param c a type-specific collection that will be used to fill the array list.<a name="line.77"></a>
+<span class="sourceLineNo">078</span>         */<a name="line.78"></a>
+<span class="sourceLineNo">079</span>        public FloatBigArrayBigList(final FloatCollection c) {<a name="line.79"></a>
+<span class="sourceLineNo">080</span>         this(c.size());<a name="line.80"></a>
+<span class="sourceLineNo">081</span>         for(FloatIterator i = c.iterator(); i.hasNext();) add(i.nextFloat());<a name="line.81"></a>
+<span class="sourceLineNo">082</span>        }<a name="line.82"></a>
+<span class="sourceLineNo">083</span>        /** Creates a new big-array big list and fills it with a given type-specific list.<a name="line.83"></a>
+<span class="sourceLineNo">084</span>         *<a name="line.84"></a>
+<span class="sourceLineNo">085</span>         * @param l a type-specific list that will be used to fill the array list.<a name="line.85"></a>
+<span class="sourceLineNo">086</span>         */<a name="line.86"></a>
+<span class="sourceLineNo">087</span>        public FloatBigArrayBigList(final FloatBigList l) {<a name="line.87"></a>
+<span class="sourceLineNo">088</span>         this(l.size64());<a name="line.88"></a>
+<span class="sourceLineNo">089</span>         l.getElements(0, a, 0, size = l.size64());<a name="line.89"></a>
+<span class="sourceLineNo">090</span>        }<a name="line.90"></a>
+<span class="sourceLineNo">091</span>        /** Creates a new big-array big list and fills it with the elements of a given big array.<a name="line.91"></a>
+<span class="sourceLineNo">092</span>         *<a name="line.92"></a>
+<span class="sourceLineNo">093</span>         * &lt;p&gt;Note that this constructor makes it easy to build big lists from literal arrays<a name="line.93"></a>
+<span class="sourceLineNo">094</span>         * declared as &lt;code&gt;&lt;var&gt;type&lt;/var&gt;[][] {{ &lt;var&gt;init_values&lt;/var&gt; }}&lt;/code&gt;.<a name="line.94"></a>
+<span class="sourceLineNo">095</span>         * The only constraint is that the number of initialisation values is<a name="line.95"></a>
+<span class="sourceLineNo">096</span>         * below {@link it.unimi.dsi.fastutil.BigArrays#SEGMENT_SIZE}.<a name="line.96"></a>
+<span class="sourceLineNo">097</span>         *<a name="line.97"></a>
+<span class="sourceLineNo">098</span>         * @param a a big array whose elements will be used to fill the array list.<a name="line.98"></a>
+<span class="sourceLineNo">099</span>         */<a name="line.99"></a>
+<span class="sourceLineNo">100</span>        public FloatBigArrayBigList(final float a[][]) {<a name="line.100"></a>
+<span class="sourceLineNo">101</span>         this(a, 0, FloatBigArrays.length(a));<a name="line.101"></a>
+<span class="sourceLineNo">102</span>        }<a name="line.102"></a>
+<span class="sourceLineNo">103</span>        /** Creates a new big-array big list and fills it with the elements of a given big array.<a name="line.103"></a>
+<span class="sourceLineNo">104</span>         *<a name="line.104"></a>
+<span class="sourceLineNo">105</span>         * &lt;p&gt;Note that this constructor makes it easy to build big lists from literal arrays<a name="line.105"></a>
+<span class="sourceLineNo">106</span>         * declared as &lt;code&gt;&lt;var&gt;type&lt;/var&gt;[][] {{ &lt;var&gt;init_values&lt;/var&gt; }}&lt;/code&gt;.<a name="line.106"></a>
+<span class="sourceLineNo">107</span>         * The only constraint is that the number of initialisation values is<a name="line.107"></a>
+<span class="sourceLineNo">108</span>         * below {@link it.unimi.dsi.fastutil.BigArrays#SEGMENT_SIZE}.<a name="line.108"></a>
+<span class="sourceLineNo">109</span>         *<a name="line.109"></a>
+<span class="sourceLineNo">110</span>         * @param a a big array whose elements will be used to fill the array list.<a name="line.110"></a>
+<span class="sourceLineNo">111</span>         * @param offset the first element to use.<a name="line.111"></a>
+<span class="sourceLineNo">112</span>         * @param length the number of elements to use.<a name="line.112"></a>
+<span class="sourceLineNo">113</span>         */<a name="line.113"></a>
+<span class="sourceLineNo">114</span>        public FloatBigArrayBigList(final float a[][], final long offset, final long length) {<a name="line.114"></a>
+<span class="sourceLineNo">115</span>         this(length);<a name="line.115"></a>
+<span class="sourceLineNo">116</span>         FloatBigArrays.copy(a, offset, this.a, 0, length);<a name="line.116"></a>
+<span class="sourceLineNo">117</span>         size = length;<a name="line.117"></a>
+<span class="sourceLineNo">118</span>        }<a name="line.118"></a>
+<span class="sourceLineNo">119</span>        /** Creates a new big-array big list and fills it with the elements returned by an iterator..<a name="line.119"></a>
+<span class="sourceLineNo">120</span>         *<a name="line.120"></a>
+<span class="sourceLineNo">121</span>         * @param i an iterator whose returned elements will fill the array list.<a name="line.121"></a>
+<span class="sourceLineNo">122</span>         */<a name="line.122"></a>
+<span class="sourceLineNo">123</span>        public FloatBigArrayBigList(final Iterator&lt;? extends Float&gt; i) {<a name="line.123"></a>
+<span class="sourceLineNo">124</span>         this();<a name="line.124"></a>
+<span class="sourceLineNo">125</span>         while(i.hasNext()) this.add(((i.next()).floatValue()));<a name="line.125"></a>
+<span class="sourceLineNo">126</span>        }<a name="line.126"></a>
+<span class="sourceLineNo">127</span>        /** Creates a new big-array big list and fills it with the elements returned by a type-specific iterator..<a name="line.127"></a>
+<span class="sourceLineNo">128</span>         *<a name="line.128"></a>
+<span class="sourceLineNo">129</span>         * @param i a type-specific iterator whose returned elements will fill the array list.<a name="line.129"></a>
+<span class="sourceLineNo">130</span>         */<a name="line.130"></a>
+<span class="sourceLineNo">131</span>        public FloatBigArrayBigList(final FloatIterator i) {<a name="line.131"></a>
+<span class="sourceLineNo">132</span>         this();<a name="line.132"></a>
+<span class="sourceLineNo">133</span>         while(i.hasNext()) this.add(i.nextFloat());<a name="line.133"></a>
+<span class="sourceLineNo">134</span>        }<a name="line.134"></a>
+<span class="sourceLineNo">135</span>        /** Returns the backing big array of this big list.<a name="line.135"></a>
+<span class="sourceLineNo">136</span>         *<a name="line.136"></a>
+<span class="sourceLineNo">137</span>         * @return the backing big array.<a name="line.137"></a>
+<span class="sourceLineNo">138</span>         */<a name="line.138"></a>
+<span class="sourceLineNo">139</span>        public float[][] elements() {<a name="line.139"></a>
+<span class="sourceLineNo">140</span>         return a;<a name="line.140"></a>
+<span class="sourceLineNo">141</span>        }<a name="line.141"></a>
+<span class="sourceLineNo">142</span>        /** Wraps a given big array into a big-array list of given size.<a name="line.142"></a>
+<span class="sourceLineNo">143</span>         *<a name="line.143"></a>
+<span class="sourceLineNo">144</span>         * @param a a big array to wrap.<a name="line.144"></a>
+<span class="sourceLineNo">145</span>         * @param length the length of the resulting big-array list.<a name="line.145"></a>
+<span class="sourceLineNo">146</span>         * @return a new big-array list of the given size, wrapping the given big array.<a name="line.146"></a>
+<span class="sourceLineNo">147</span>         */<a name="line.147"></a>
+<span class="sourceLineNo">148</span>        public static FloatBigArrayBigList wrap(final float a[][], final long length) {<a name="line.148"></a>
+<span class="sourceLineNo">149</span>         if (length &gt; FloatBigArrays.length(a)) throw new IllegalArgumentException("The specified length (" + length + ") is greater than the array size (" + FloatBigArrays.length(a) + ")");<a name="line.149"></a>
+<span class="sourceLineNo">150</span>         final FloatBigArrayBigList l = new FloatBigArrayBigList (a, false);<a name="line.150"></a>
+<span class="sourceLineNo">151</span>         l.size = length;<a name="line.151"></a>
+<span class="sourceLineNo">152</span>         return l;<a name="line.152"></a>
+<span class="sourceLineNo">153</span>        }<a name="line.153"></a>
+<span class="sourceLineNo">154</span>        /** Wraps a given big array into a big-array big list.<a name="line.154"></a>
+<span class="sourceLineNo">155</span>         *<a name="line.155"></a>
+<span class="sourceLineNo">156</span>         * @param a a big array to wrap.<a name="line.156"></a>
+<span class="sourceLineNo">157</span>         * @return a new big-array big list wrapping the given array.<a name="line.157"></a>
+<span class="sourceLineNo">158</span>         */<a name="line.158"></a>
+<span class="sourceLineNo">159</span>        public static FloatBigArrayBigList wrap(final float a[][]) {<a name="line.159"></a>
+<span class="sourceLineNo">160</span>         return wrap(a, FloatBigArrays.length(a));<a name="line.160"></a>
+<span class="sourceLineNo">161</span>        }<a name="line.161"></a>
+<span class="sourceLineNo">162</span>        /** Ensures that this big-array big list can contain the given number of entries without resizing.<a name="line.162"></a>
+<span class="sourceLineNo">163</span>         *<a name="line.163"></a>
+<span class="sourceLineNo">164</span>         * @param capacity the new minimum capacity for this big-array big list.<a name="line.164"></a>
+<span class="sourceLineNo">165</span>         */<a name="line.165"></a>
+<span class="sourceLineNo">166</span><a name="line.166"></a>
+<span class="sourceLineNo">167</span>        public void ensureCapacity(final long capacity) {<a name="line.167"></a>
+<span class="sourceLineNo">168</span>         a = FloatBigArrays.ensureCapacity(a, capacity, size);<a name="line.168"></a>
+<span class="sourceLineNo">169</span>         if (ASSERTS) assert size &lt;= FloatBigArrays.length(a);<a name="line.169"></a>
+<span class="sourceLineNo">170</span>        }<a name="line.170"></a>
+<span class="sourceLineNo">171</span>        /** Grows this big-array big list, ensuring that it can contain the given number of entries without resizing,<a name="line.171"></a>
+<span class="sourceLineNo">172</span>         * and in case enlarging it at least by a factor of two.<a name="line.172"></a>
+<span class="sourceLineNo">173</span>         *<a name="line.173"></a>
+<span class="sourceLineNo">174</span>         * @param capacity the new minimum capacity for this big-array big list.<a name="line.174"></a>
+<span class="sourceLineNo">175</span>         */<a name="line.175"></a>
+<span class="sourceLineNo">176</span><a name="line.176"></a>
+<span class="sourceLineNo">177</span>        private void grow(final long capacity) {<a name="line.177"></a>
+<span class="sourceLineNo">178</span>         a = FloatBigArrays.grow(a, capacity, size);<a name="line.178"></a>
+<span class="sourceLineNo">179</span>         if (ASSERTS) assert size &lt;= FloatBigArrays.length(a);<a name="line.179"></a>
+<span class="sourceLineNo">180</span>        }<a name="line.180"></a>
+<span class="sourceLineNo">181</span>        @Override<a name="line.181"></a>
+<span class="sourceLineNo">182</span>        public void add(final long index, final float k) {<a name="line.182"></a>
+<span class="sourceLineNo">183</span>         ensureIndex(index);<a name="line.183"></a>
+<span class="sourceLineNo">184</span>         grow(size + 1);<a name="line.184"></a>
+<span class="sourceLineNo">185</span>         if (index != size) FloatBigArrays.copy(a, index, a, index + 1, size - index);<a name="line.185"></a>
+<span class="sourceLineNo">186</span>         FloatBigArrays.set(a, index, k);<a name="line.186"></a>
+<span class="sourceLineNo">187</span>         size++;<a name="line.187"></a>
+<span class="sourceLineNo">188</span>         if (ASSERTS) assert size &lt;= FloatBigArrays.length(a);<a name="line.188"></a>
+<span class="sourceLineNo">189</span>        }<a name="line.189"></a>
+<span class="sourceLineNo">190</span>        @Override<a name="line.190"></a>
+<span class="sourceLineNo">191</span>        public boolean add(final float k) {<a name="line.191"></a>
+<span class="sourceLineNo">192</span>         grow(size + 1);<a name="line.192"></a>
+<span class="sourceLineNo">193</span>         FloatBigArrays.set(a, size++, k);<a name="line.193"></a>
+<span class="sourceLineNo">194</span>         if (ASSERTS) assert size &lt;= FloatBigArrays.length(a);<a name="line.194"></a>
+<span class="sourceLineNo">195</span>         return true;<a name="line.195"></a>
+<span class="sourceLineNo">196</span>        }<a name="line.196"></a>
+<span class="sourceLineNo">197</span>        @Override<a name="line.197"></a>
+<span class="sourceLineNo">198</span>        public float getFloat(final long index) {<a name="line.198"></a>
+<span class="sourceLineNo">199</span>         if (index &gt;= size) throw new IndexOutOfBoundsException("Index (" + index + ") is greater than or equal to list size (" + size + ")");<a name="line.199"></a>
+<span class="sourceLineNo">200</span>         return FloatBigArrays.get(a, index);<a name="line.200"></a>
+<span class="sourceLineNo">201</span>        }<a name="line.201"></a>
+<span class="sourceLineNo">202</span>        @Override<a name="line.202"></a>
+<span class="sourceLineNo">203</span>        public long indexOf(final float k) {<a name="line.203"></a>
+<span class="sourceLineNo">204</span>         for(long i = 0; i &lt; size; i++) if (( Float.floatToIntBits(k) == Float.floatToIntBits(FloatBigArrays.get(a, i)) )) return i;<a name="line.204"></a>
+<span class="sourceLineNo">205</span>         return -1;<a name="line.205"></a>
+<span class="sourceLineNo">206</span>        }<a name="line.206"></a>
+<span class="sourceLineNo">207</span>        @Override<a name="line.207"></a>
+<span class="sourceLineNo">208</span>        public long lastIndexOf(final float k) {<a name="line.208"></a>
+<span class="sourceLineNo">209</span>         for(long i = size; i-- != 0;) if (( Float.floatToIntBits(k) == Float.floatToIntBits(FloatBigArrays.get(a, i)) )) return i;<a name="line.209"></a>
+<span class="sourceLineNo">210</span>         return -1;<a name="line.210"></a>
+<span class="sourceLineNo">211</span>        }<a name="line.211"></a>
+<span class="sourceLineNo">212</span>        @Override<a name="line.212"></a>
+<span class="sourceLineNo">213</span>        public float removeFloat(final long index) {<a name="line.213"></a>
+<span class="sourceLineNo">214</span>         if (index &gt;= size) throw new IndexOutOfBoundsException("Index (" + index + ") is greater than or equal to list size (" + size + ")");<a name="line.214"></a>
+<span class="sourceLineNo">215</span>         final float old = FloatBigArrays.get(a, index);<a name="line.215"></a>
+<span class="sourceLineNo">216</span>         size--;<a name="line.216"></a>
+<span class="sourceLineNo">217</span>         if (index != size) FloatBigArrays.copy(a, index + 1, a, index, size - index);<a name="line.217"></a>
+<span class="sourceLineNo">218</span>         if (ASSERTS) assert size &lt;= FloatBigArrays.length(a);<a name="line.218"></a>
+<span class="sourceLineNo">219</span>         return old;<a name="line.219"></a>
+<span class="sourceLineNo">220</span>        }<a name="line.220"></a>
+<span class="sourceLineNo">221</span>        @Override<a name="line.221"></a>
+<span class="sourceLineNo">222</span>        public boolean rem(final float k) {<a name="line.222"></a>
+<span class="sourceLineNo">223</span>         final long index = indexOf(k);<a name="line.223"></a>
+<span class="sourceLineNo">224</span>         if (index == -1) return false;<a name="line.224"></a>
+<span class="sourceLineNo">225</span>         removeFloat(index);<a name="line.225"></a>
+<span class="sourceLineNo">226</span>         if (ASSERTS) assert size &lt;= FloatBigArrays.length(a);<a name="line.226"></a>
+<span class="sourceLineNo">227</span>         return true;<a name="line.227"></a>
+<span class="sourceLineNo">228</span>        }<a name="line.228"></a>
+<span class="sourceLineNo">229</span>        @Override<a name="line.229"></a>
+<span class="sourceLineNo">230</span>        public float set(final long index, final float k) {<a name="line.230"></a>
+<span class="sourceLineNo">231</span>         if (index &gt;= size) throw new IndexOutOfBoundsException("Index (" + index + ") is greater than or equal to list size (" + size + ")");<a name="line.231"></a>
+<span class="sourceLineNo">232</span>         float old = FloatBigArrays.get(a, index);<a name="line.232"></a>
+<span class="sourceLineNo">233</span>         FloatBigArrays.set(a, index, k);<a name="line.233"></a>
+<span class="sourceLineNo">234</span>         return old;<a name="line.234"></a>
+<span class="sourceLineNo">235</span>        }<a name="line.235"></a>
+<span class="sourceLineNo">236</span>        @Override<a name="line.236"></a>
+<span class="sourceLineNo">237</span>        public boolean removeAll(final FloatCollection c) {<a name="line.237"></a>
+<span class="sourceLineNo">238</span>         float[] s = null, d = null;<a name="line.238"></a>
+<span class="sourceLineNo">239</span>         int ss = -1, sd = BigArrays.SEGMENT_SIZE, ds = -1, dd = BigArrays.SEGMENT_SIZE;<a name="line.239"></a>
+<span class="sourceLineNo">240</span>         for (long i = 0; i &lt; size; i++) {<a name="line.240"></a>
+<span class="sourceLineNo">241</span>          if (sd == BigArrays.SEGMENT_SIZE) {<a name="line.241"></a>
+<span class="sourceLineNo">242</span>           sd = 0;<a name="line.242"></a>
+<span class="sourceLineNo">243</span>           s = a[++ss];<a name="line.243"></a>
+<span class="sourceLineNo">244</span>          }<a name="line.244"></a>
+<span class="sourceLineNo">245</span>          if (!c.contains(s[sd])) {<a name="line.245"></a>
+<span class="sourceLineNo">246</span>           if (dd == BigArrays.SEGMENT_SIZE) {<a name="line.246"></a>
+<span class="sourceLineNo">247</span>            d = a[++ds];<a name="line.247"></a>
+<span class="sourceLineNo">248</span>            dd = 0;<a name="line.248"></a>
+<span class="sourceLineNo">249</span>           }<a name="line.249"></a>
+<span class="sourceLineNo">250</span>           d[dd++] = s[sd];<a name="line.250"></a>
+<span class="sourceLineNo">251</span>          }<a name="line.251"></a>
+<span class="sourceLineNo">252</span>          sd++;<a name="line.252"></a>
+<span class="sourceLineNo">253</span>         }<a name="line.253"></a>
+<span class="sourceLineNo">254</span>         final long j = BigArrays.index(ds, dd);<a name="line.254"></a>
+<span class="sourceLineNo">255</span>         final boolean modified = size != j;<a name="line.255"></a>
+<span class="sourceLineNo">256</span>         size = j;<a name="line.256"></a>
+<span class="sourceLineNo">257</span>         return modified;<a name="line.257"></a>
+<span class="sourceLineNo">258</span>        }<a name="line.258"></a>
+<span class="sourceLineNo">259</span>        @Override<a name="line.259"></a>
+<span class="sourceLineNo">260</span>        public boolean removeAll(final Collection&lt;?&gt; c) {<a name="line.260"></a>
+<span class="sourceLineNo">261</span>         float[] s = null, d = null;<a name="line.261"></a>
+<span class="sourceLineNo">262</span>         int ss = -1, sd = BigArrays.SEGMENT_SIZE, ds = -1, dd = BigArrays.SEGMENT_SIZE;<a name="line.262"></a>
+<span class="sourceLineNo">263</span>         for (long i = 0; i &lt; size; i++) {<a name="line.263"></a>
+<span class="sourceLineNo">264</span>          if (sd == BigArrays.SEGMENT_SIZE) {<a name="line.264"></a>
+<span class="sourceLineNo">265</span>           sd = 0;<a name="line.265"></a>
+<span class="sourceLineNo">266</span>           s = a[++ss];<a name="line.266"></a>
+<span class="sourceLineNo">267</span>          }<a name="line.267"></a>
+<span class="sourceLineNo">268</span>          if (!c.contains((Float.valueOf(s[sd])))) {<a name="line.268"></a>
+<span class="sourceLineNo">269</span>           if (dd == BigArrays.SEGMENT_SIZE) {<a name="line.269"></a>
+<span class="sourceLineNo">270</span>            d = a[++ds];<a name="line.270"></a>
+<span class="sourceLineNo">271</span>            dd = 0;<a name="line.271"></a>
+<span class="sourceLineNo">272</span>           }<a name="line.272"></a>
+<span class="sourceLineNo">273</span>           d[dd++] = s[sd];<a name="line.273"></a>
+<span class="sourceLineNo">274</span>          }<a name="line.274"></a>
+<span class="sourceLineNo">275</span>          sd++;<a name="line.275"></a>
+<span class="sourceLineNo">276</span>         }<a name="line.276"></a>
+<span class="sourceLineNo">277</span>         final long j = BigArrays.index(ds, dd);<a name="line.277"></a>
+<span class="sourceLineNo">278</span>         final boolean modified = size != j;<a name="line.278"></a>
+<span class="sourceLineNo">279</span>         size = j;<a name="line.279"></a>
+<span class="sourceLineNo">280</span>         return modified;<a name="line.280"></a>
+<span class="sourceLineNo">281</span>        }<a name="line.281"></a>
+<span class="sourceLineNo">282</span>        @Override<a name="line.282"></a>
+<span class="sourceLineNo">283</span>        public void clear() {<a name="line.283"></a>
+<span class="sourceLineNo">284</span>         size = 0;<a name="line.284"></a>
+<span class="sourceLineNo">285</span>         if (ASSERTS) assert size &lt;= FloatBigArrays.length(a);<a name="line.285"></a>
+<span class="sourceLineNo">286</span>        }<a name="line.286"></a>
+<span class="sourceLineNo">287</span>        @Override<a name="line.287"></a>
+<span class="sourceLineNo">288</span>        public long size64() {<a name="line.288"></a>
+<span class="sourceLineNo">289</span>         return size;<a name="line.289"></a>
+<span class="sourceLineNo">290</span>        }<a name="line.290"></a>
+<span class="sourceLineNo">291</span>        @Override<a name="line.291"></a>
+<span class="sourceLineNo">292</span>        public void size(final long size) {<a name="line.292"></a>
+<span class="sourceLineNo">293</span>         if (size &gt; FloatBigArrays.length(a)) ensureCapacity(size);<a name="line.293"></a>
+<span class="sourceLineNo">294</span>         if (size &gt; this.size) FloatBigArrays.fill(a, this.size, size, (0));<a name="line.294"></a>
+<span class="sourceLineNo">295</span>         this.size = size;<a name="line.295"></a>
+<span class="sourceLineNo">296</span>        }<a name="line.296"></a>
+<span class="sourceLineNo">297</span>        @Override<a name="line.297"></a>
+<span class="sourceLineNo">298</span>        public boolean isEmpty() {<a name="line.298"></a>
+<span class="sourceLineNo">299</span>         return size == 0;<a name="line.299"></a>
+<span class="sourceLineNo">300</span>        }<a name="line.300"></a>
+<span class="sourceLineNo">301</span>        /** Trims this big-array big list so that the capacity is equal to the size.<a name="line.301"></a>
+<span class="sourceLineNo">302</span>         *<a name="line.302"></a>
+<span class="sourceLineNo">303</span>         * @see java.util.ArrayList#trimToSize()<a name="line.303"></a>
+<span class="sourceLineNo">304</span>         */<a name="line.304"></a>
+<span class="sourceLineNo">305</span>        public void trim() {<a name="line.305"></a>
+<span class="sourceLineNo">306</span>         trim(0);<a name="line.306"></a>
+<span class="sourceLineNo">307</span>        }<a name="line.307"></a>
+<span class="sourceLineNo">308</span>        /** Trims the backing big array if it is too large.<a name="line.308"></a>
+<span class="sourceLineNo">309</span>         *<a name="line.309"></a>
+<span class="sourceLineNo">310</span>         * If the current big array length is smaller than or equal to<a name="line.310"></a>
+<span class="sourceLineNo">311</span>         * &lt;code&gt;n&lt;/code&gt;, this method does nothing. Otherwise, it trims the<a name="line.311"></a>
+<span class="sourceLineNo">312</span>         * big-array length to the maximum between &lt;code&gt;n&lt;/code&gt; and {@link #size64()}.<a name="line.312"></a>
+<span class="sourceLineNo">313</span>         *<a name="line.313"></a>
+<span class="sourceLineNo">314</span>         * &lt;P&gt;This method is useful when reusing big lists.  {@linkplain #clear() Clearing a<a name="line.314"></a>
+<span class="sourceLineNo">315</span>         * big list} leaves the big-array length untouched. If you are reusing a big list<a name="line.315"></a>
+<span class="sourceLineNo">316</span>         * many times, you can call this method with a typical<a name="line.316"></a>
+<span class="sourceLineNo">317</span>         * size to avoid keeping around a very large big array just<a name="line.317"></a>
+<span class="sourceLineNo">318</span>         * because of a few large transient big lists.<a name="line.318"></a>
+<span class="sourceLineNo">319</span>         *<a name="line.319"></a>
+<span class="sourceLineNo">320</span>         * @param n the threshold for the trimming.<a name="line.320"></a>
+<span class="sourceLineNo">321</span>         */<a name="line.321"></a>
+<span class="sourceLineNo">322</span>        public void trim(final long n) {<a name="line.322"></a>
+<span class="sourceLineNo">323</span>         final long arrayLength = FloatBigArrays.length(a);<a name="line.323"></a>
+<span class="sourceLineNo">324</span>         if (n &gt;= arrayLength || size == arrayLength) return;<a name="line.324"></a>
+<span class="sourceLineNo">325</span>         a = FloatBigArrays.trim(a, Math.max(n, size));<a name="line.325"></a>
+<span class="sourceLineNo">326</span>         if (ASSERTS) assert size &lt;= FloatBigArrays.length(a);<a name="line.326"></a>
+<span class="sourceLineNo">327</span>        }<a name="line.327"></a>
+<span class="sourceLineNo">328</span>           /** Copies element of this type-specific list into the given big array using optimized system calls.<a name="line.328"></a>
+<span class="sourceLineNo">329</span>         *<a name="line.329"></a>
+<span class="sourceLineNo">330</span>         * @param from the start index (inclusive).<a name="line.330"></a>
+<span class="sourceLineNo">331</span>         * @param a the destination big array.<a name="line.331"></a>
+<span class="sourceLineNo">332</span>         * @param offset the offset into the destination array where to store the first element copied.<a name="line.332"></a>
+<span class="sourceLineNo">333</span>         * @param length the number of elements to be copied.<a name="line.333"></a>
+<span class="sourceLineNo">334</span>         */<a name="line.334"></a>
+<span class="sourceLineNo">335</span>        @Override<a name="line.335"></a>
+<span class="sourceLineNo">336</span>        public void getElements(final long from, final float[][] a, final long offset, final long length) {<a name="line.336"></a>
+<span class="sourceLineNo">337</span>         FloatBigArrays.copy(this.a, from, a, offset, length);<a name="line.337"></a>
+<span class="sourceLineNo">338</span>        }<a name="line.338"></a>
+<span class="sourceLineNo">339</span>        /** Removes elements of this type-specific list using optimized system calls.<a name="line.339"></a>
+<span class="sourceLineNo">340</span>         *<a name="line.340"></a>
+<span class="sourceLineNo">341</span>         * @param from the start index (inclusive).<a name="line.341"></a>
+<span class="sourceLineNo">342</span>         * @param to the end index (exclusive).<a name="line.342"></a>
+<span class="sourceLineNo">343</span>         */<a name="line.343"></a>
+<span class="sourceLineNo">344</span>        @Override<a name="line.344"></a>
+<span class="sourceLineNo">345</span>        public void removeElements(final long from, final long to) {<a name="line.345"></a>
+<span class="sourceLineNo">346</span>         BigArrays.ensureFromTo(size, from, to);<a name="line.346"></a>
+<span class="sourceLineNo">347</span>         FloatBigArrays.copy(a, to, a, from, size - to);<a name="line.347"></a>
+<span class="sourceLineNo">348</span>         size -= (to - from);<a name="line.348"></a>
+<span class="sourceLineNo">349</span>        }<a name="line.349"></a>
+<span class="sourceLineNo">350</span>        /** Adds elements to this type-specific list using optimized system calls.<a name="line.350"></a>
+<span class="sourceLineNo">351</span>         *<a name="line.351"></a>
+<span class="sourceLineNo">352</span>         * @param index the index at which to add elements.<a name="line.352"></a>
+<span class="sourceLineNo">353</span>         * @param a the big array containing the elements.<a name="line.353"></a>
+<span class="sourceLineNo">354</span>         * @param offset the offset of the first element to add.<a name="line.354"></a>
+<span class="sourceLineNo">355</span>         * @param length the number of elements to add.<a name="line.355"></a>
+<span class="sourceLineNo">356</span>         */<a name="line.356"></a>
+<span class="sourceLineNo">357</span>        @Override<a name="line.357"></a>
+<span class="sourceLineNo">358</span>        public void addElements(final long index, final float a[][], final long offset, final long length) {<a name="line.358"></a>
+<span class="sourceLineNo">359</span>         ensureIndex(index);<a name="line.359"></a>
+<span class="sourceLineNo">360</span>         FloatBigArrays.ensureOffsetLength(a, offset, length);<a name="line.360"></a>
+<span class="sourceLineNo">361</span>         grow(size + length);<a name="line.361"></a>
+<span class="sourceLineNo">362</span>         FloatBigArrays.copy(this.a, index, this.a, index + length, size - index);<a name="line.362"></a>
+<span class="sourceLineNo">363</span>         FloatBigArrays.copy(a, offset, this.a, index, length);<a name="line.363"></a>
+<span class="sourceLineNo">364</span>         size += length;<a name="line.364"></a>
+<span class="sourceLineNo">365</span>        }<a name="line.365"></a>
+<span class="sourceLineNo">366</span>        @Override<a name="line.366"></a>
+<span class="sourceLineNo">367</span>        public FloatBigListIterator listIterator(final long index) {<a name="line.367"></a>
+<span class="sourceLineNo">368</span>         ensureIndex(index);<a name="line.368"></a>
+<span class="sourceLineNo">369</span>         return new AbstractFloatBigListIterator () {<a name="line.369"></a>
+<span class="sourceLineNo">370</span>           long pos = index, last = -1;<a name="line.370"></a>
+<span class="sourceLineNo">371</span>           public boolean hasNext() { return pos &lt; size; }<a name="line.371"></a>
+<span class="sourceLineNo">372</span>           public boolean hasPrevious() { return pos &gt; 0; }<a name="line.372"></a>
+<span class="sourceLineNo">373</span>           public float nextFloat() { if (! hasNext()) throw new NoSuchElementException(); return FloatBigArrays.get(a, last = pos++); }<a name="line.373"></a>
+<span class="sourceLineNo">374</span>           public float previousFloat() { if (! hasPrevious()) throw new NoSuchElementException(); return FloatBigArrays.get(a, last = --pos); }<a name="line.374"></a>
+<span class="sourceLineNo">375</span>           public long nextIndex() { return pos; }<a name="line.375"></a>
+<span class="sourceLineNo">376</span>           public long previousIndex() { return pos - 1; }<a name="line.376"></a>
+<span class="sourceLineNo">377</span>           public void add(float k) {<a name="line.377"></a>
+<span class="sourceLineNo">378</span>            FloatBigArrayBigList.this.add(pos++, k);<a name="line.378"></a>
+<span class="sourceLineNo">379</span>            last = -1;<a name="line.379"></a>
+<span class="sourceLineNo">380</span>           }<a name="line.380"></a>
+<span class="sourceLineNo">381</span>           public void set(float k) {<a name="line.381"></a>
+<span class="sourceLineNo">382</span>            if (last == -1) throw new IllegalStateException();<a name="line.382"></a>
+<span class="sourceLineNo">383</span>            FloatBigArrayBigList.this.set(last, k);<a name="line.383"></a>
+<span class="sourceLineNo">384</span>           }<a name="line.384"></a>
+<span class="sourceLineNo">385</span>           public void remove() {<a name="line.385"></a>
+<span class="sourceLineNo">386</span>            if (last == -1) throw new IllegalStateException();<a name="line.386"></a>
+<span class="sourceLineNo">387</span>            FloatBigArrayBigList.this.removeFloat(last);<a name="line.387"></a>
+<span class="sourceLineNo">388</span>            /* If the last operation was a next(), we are removing an element *before* us, and we must decrease pos correspondingly. */<a name="line.388"></a>
+<span class="sourceLineNo">389</span>            if (last &lt; pos) pos--;<a name="line.389"></a>
+<span class="sourceLineNo">390</span>            last = -1;<a name="line.390"></a>
+<span class="sourceLineNo">391</span>           }<a name="line.391"></a>
+<span class="sourceLineNo">392</span>          };<a name="line.392"></a>
+<span class="sourceLineNo">393</span>        }<a name="line.393"></a>
+<span class="sourceLineNo">394</span>        @Override<a name="line.394"></a>
+<span class="sourceLineNo">395</span>        public FloatBigArrayBigList clone() {<a name="line.395"></a>
+<span class="sourceLineNo">396</span>         FloatBigArrayBigList c = new FloatBigArrayBigList (size);<a name="line.396"></a>
+<span class="sourceLineNo">397</span>         FloatBigArrays.copy(a, 0, c.a, 0, size);<a name="line.397"></a>
+<span class="sourceLineNo">398</span>         c.size = size;<a name="line.398"></a>
+<span class="sourceLineNo">399</span>         return c;<a name="line.399"></a>
+<span class="sourceLineNo">400</span>        }<a name="line.400"></a>
+<span class="sourceLineNo">401</span>        /** Compares this type-specific big-array list to another one.<a name="line.401"></a>
+<span class="sourceLineNo">402</span>         *<a name="line.402"></a>
+<span class="sourceLineNo">403</span>         * &lt;P&gt;This method exists only for sake of efficiency. The implementation<a name="line.403"></a>
+<span class="sourceLineNo">404</span>         * inherited from the abstract implementation would already work.<a name="line.404"></a>
+<span class="sourceLineNo">405</span>         *<a name="line.405"></a>
+<span class="sourceLineNo">406</span>         * @param l a type-specific big-array list.<a name="line.406"></a>
+<span class="sourceLineNo">407</span>         * @return true if the argument contains the same elements of this type-specific big-array list.<a name="line.407"></a>
+<span class="sourceLineNo">408</span>         */<a name="line.408"></a>
+<span class="sourceLineNo">409</span>        public boolean equals(final FloatBigArrayBigList l) {<a name="line.409"></a>
+<span class="sourceLineNo">410</span>         if (l == this) return true;<a name="line.410"></a>
+<span class="sourceLineNo">411</span>         long s = size64();<a name="line.411"></a>
+<span class="sourceLineNo">412</span>         if (s != l.size64()) return false;<a name="line.412"></a>
+<span class="sourceLineNo">413</span>         final float[][] a1 = a;<a name="line.413"></a>
+<span class="sourceLineNo">414</span>         final float[][] a2 = l.a;<a name="line.414"></a>
+<span class="sourceLineNo">415</span>         while(s-- != 0) if (FloatBigArrays.get(a1, s) != FloatBigArrays.get(a2, s)) return false;<a name="line.415"></a>
+<span class="sourceLineNo">416</span>         return true;<a name="line.416"></a>
+<span class="sourceLineNo">417</span>        }<a name="line.417"></a>
+<span class="sourceLineNo">418</span>        /** Compares this big list to another big list.<a name="line.418"></a>
+<span class="sourceLineNo">419</span>         *<a name="line.419"></a>
+<span class="sourceLineNo">420</span>         * &lt;P&gt;This method exists only for sake of efficiency. The implementation<a name="line.420"></a>
+<span class="sourceLineNo">421</span>         * inherited from the abstract implementation would already work.<a name="line.421"></a>
+<span class="sourceLineNo">422</span>         *<a name="line.422"></a>
+<span class="sourceLineNo">423</span>         * @param l a big list.<a name="line.423"></a>
+<span class="sourceLineNo">424</span>         * @return a negative integer,<a name="line.424"></a>
+<span class="sourceLineNo">425</span>         * zero, or a positive integer as this big list is lexicographically less than, equal<a name="line.425"></a>
+<span class="sourceLineNo">426</span>         * to, or greater than the argument.<a name="line.426"></a>
+<span class="sourceLineNo">427</span>         */<a name="line.427"></a>
+<span class="sourceLineNo">428</span><a name="line.428"></a>
+<span class="sourceLineNo">429</span>        public int compareTo(final FloatBigArrayBigList l) {<a name="line.429"></a>
+<span class="sourceLineNo">430</span>         final long s1 = size64(), s2 = l.size64();<a name="line.430"></a>
+<span class="sourceLineNo">431</span>         final float a1[][] = a, a2[][] = l.a;<a name="line.431"></a>
+<span class="sourceLineNo">432</span>         float e1, e2;<a name="line.432"></a>
+<span class="sourceLineNo">433</span>         int r, i;<a name="line.433"></a>
+<span class="sourceLineNo">434</span>         for(i = 0; i &lt; s1 &amp;&amp; i &lt; s2; i++) {<a name="line.434"></a>
+<span class="sourceLineNo">435</span>          e1 = FloatBigArrays.get(a1, i);<a name="line.435"></a>
+<span class="sourceLineNo">436</span>          e2 = FloatBigArrays.get(a2, i);<a name="line.436"></a>
+<span class="sourceLineNo">437</span>          if ((r = ( Float.compare((e1),(e2)) )) != 0) return r;<a name="line.437"></a>
+<span class="sourceLineNo">438</span>         }<a name="line.438"></a>
+<span class="sourceLineNo">439</span>         return i &lt; s2 ? -1 : (i &lt; s1 ? 1 : 0);<a name="line.439"></a>
+<span class="sourceLineNo">440</span>        }<a name="line.440"></a>
+<span class="sourceLineNo">441</span>        private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {<a name="line.441"></a>
+<span class="sourceLineNo">442</span>         s.defaultWriteObject();<a name="line.442"></a>
+<span class="sourceLineNo">443</span>         for(int i = 0; i &lt; size; i++) s.writeFloat(FloatBigArrays.get(a, i));<a name="line.443"></a>
+<span class="sourceLineNo">444</span>        }<a name="line.444"></a>
+<span class="sourceLineNo">445</span><a name="line.445"></a>
+<span class="sourceLineNo">446</span>        private void readObject(java.io.ObjectInputStream s) throws java.io.IOException, ClassNotFoundException {<a name="line.446"></a>
+<span class="sourceLineNo">447</span>         s.defaultReadObject();<a name="line.447"></a>
+<span class="sourceLineNo">448</span>         a = FloatBigArrays.newBigArray(size);<a name="line.448"></a>
+<span class="sourceLineNo">449</span>         for(int i = 0; i &lt; size; i++) FloatBigArrays.set(a, i, s.readFloat());<a name="line.449"></a>
+<span class="sourceLineNo">450</span>        }<a name="line.450"></a>
+<span class="sourceLineNo">451</span>}<a name="line.451"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>
